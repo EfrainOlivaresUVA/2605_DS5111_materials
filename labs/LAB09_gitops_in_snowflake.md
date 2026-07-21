@@ -61,14 +61,8 @@ ds5111-pipeline/
 
 ## Part 1: GitHub Setup & Secret Configuration
 
-### Step 1.1: Create the GitHub Repository
-1. Log into GitHub and create a repository named `ds5111-lab9-gitops`.
-2. Clone the repository to your local machine:
-   ```bash
-   git clone https://github.com/<your-github-username>/ds5111-lab9-gitops.git
-   cd ds5111-lab9-gitops
-   mkdir scripts
-   ```
+### Step 1.1: Work in your current github repository
+1. You will do your work on your existing repository, access it in your preferred method jupyter/vscode/cli/aws-web.
 
 ### Step 1.2: Generate a GitHub Personal Access Token (PAT)
 1. In GitHub, go to **Settings** $\rightarrow$ **Developer Settings** $\rightarrow$ **Personal Access Tokens** $\rightarrow$ **Tokens (classic)**.
