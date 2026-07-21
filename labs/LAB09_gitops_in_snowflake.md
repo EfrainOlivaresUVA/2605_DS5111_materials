@@ -288,11 +288,11 @@ CREATE SCHEMA IF NOT EXISTS DEV_<your_computing_id>;
 USE SCHEMA DEV_<your_computing_id>;
 
 -- Fetch new branches
-ALTER GIT REPOSITORY PUBLIC.DS5111_GIT_STAGE FETCH;
+ALTER GIT REPOSITORY <UVAID>.DS5111_GIT_STAGE FETCH;
 
--- Execute from feature branch into DEV schema
-EXECUTE IMMEDIATE FROM @PUBLIC.DS5111_GIT_STAGE/branches/feature/add-char-count/scripts/01_stg_youtube_transcripts.sql;
-EXECUTE IMMEDIATE FROM @PUBLIC.DS5111_GIT_STAGE/branches/feature/add-char-count/scripts/02_dim_videos.sql;
+-- Execute from feature branch into DEV schema   !!! NOTE THE " in the path name because of the / in the branch name
+EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/"feature/add-char-count"/transform/01_stg_youtube_transcripts.sql;
+EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/"feature/add-char-count"/transform/02_dim_videos.sql;
 
 -- Verify CHAR_COUNT exists in DEV schema
 SELECT VIDEO_ID, WORD_COUNT, CHAR_COUNT FROM DIM_VIDEOS;
