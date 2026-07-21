@@ -64,36 +64,69 @@ ds5111-pipeline/
 ### Step 1.1: Work in your current github repository
 1. You will do your work on your existing repository, access it in your preferred method jupyter/vscode/cli/aws-web.
 
-### Step 1.2: Generate a GitHub Personal Access Token (PAT)
-1. In GitHub, go to **Settings** $\rightarrow$ **Developer Settings** $\rightarrow$ **Personal Access Tokens** $\rightarrow$ **Tokens (classic)**.
-2. Click **Generate new token (classic)**.
-3. Name it `Snowflake Git Integration Token`.
-4. Select scope: `repo` (Full control of repositories).
-5. Generate and **copy the token** immediately.
+### Step 1.2: Prepare Your Repository & Authentication Strategy
 
-### Step 1.3: Create Snowflake Secret & Git Repository Stage
-Open a new SQL Worksheet in Snowflake and execute the following commands. Replace `<your-computing-id>` and `<your-github-username>` with your actual values:
+For this lab, you will use your existing `ds5111-pipeline` repository from Lab 8.
+
+* **Path A (Default / Recommended): Public Repository**
+  If your GitHub repository is **Public**, no Personal Access Token (PAT) or Snowflake secret configuration is required. Snowflake can pull public repositories directly using the account's built-in `github_public_integration`.
+
+* **Path B (Optional / Advanced): Private Repository**
+  If your repository is **Private**, you must generate a GitHub Personal Access Token (PAT) so Snowflake can authenticate:
+  1. In GitHub, navigate to **Settings** $\rightarrow$ **Developer Settings** $\rightarrow$ **Personal Access Tokens** $\rightarrow$ **Tokens (classic)**.
+  2. Click **Generate new token (classic)**, name it `Snowflake Git Token`, select the `repo` scope, and copy the generated token string.
+
+---
+
+### Step 1.3: Create the Snowflake Git Repository Stage
+
+Open a SQL Worksheet in Snowflake and execute the setup queries corresponding to your repository visibility choice below. Replace `<your-github-username>` with your actual GitHub username.
+
+#### Option A: Default Setup (Public Repositories)
 
 ```sql
--- Set active context
+-- Set active database context
 USE DATABASE DS5111_DB;
 USE SCHEMA PUBLIC;
 
--- 1. Create a Snowflake Secret to store your PAT securely
+-- Create native Git Stage referencing public integration
+CREATE OR REPLACE GIT REPOSITORY DS5111_GIT_STAGE
+  ORIGIN = 'https://github.com/<your-github-username>/ds5111-pipeline.git'
+  API_INTEGRATION = GITHUB_PUBLIC_INTEGRATION;
+```
+
+#### Option B: Advanced Setup (Private Repositories with Secret)
+
+```sql
+-- Set active database context
+USE DATABASE DS5111_DB;
+USE SCHEMA PUBLIC;
+
+-- 1. Create a Snowflake Secret object to store your PAT securely
 CREATE OR REPLACE SECRET GITHUB_PAT_SECRET
   TYPE = PLAINTEXT_PASSWORD
   USERNAME = '<your-github-username>'
   PASSWORD = '<your-github-personal-access-token>';
 
--- 2. Create the native Git Repository stage
+-- 2. Create native Git Stage using credentials
 CREATE OR REPLACE GIT REPOSITORY DS5111_GIT_STAGE
-  ORIGIN = 'https://github.com/<your-github-username>/ds5111-lab9-gitops.git'
+  ORIGIN = 'https://github.com/<your-github-username>/ds5111-pipeline.git'
   API_INTEGRATION = GITHUB_API_INTEGRATION
   GIT_CREDENTIALS = GITHUB_PAT_SECRET;
+```
 
--- 3. Verify connection and list repo files
+#### Verify the Stage Connection (All Students)
+
+After creating your stage using Option A or B, run the following commands to fetch the repository metadata and verify your file tree:
+
+```sql
+-- Fetch the latest commits down from GitHub
 ALTER GIT REPOSITORY DS5111_GIT_STAGE FETCH;
+
+-- Show tracked branches inside the stage
 SHOW GIT BRANCHES IN DS5111_GIT_STAGE;
+
+-- List files inside the main branch
 LIST @DS5111_GIT_STAGE/branches/main;
 ```
 
