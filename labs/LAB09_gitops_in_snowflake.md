@@ -235,7 +235,7 @@ EXECUTE IMMEDIATE FROM @DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake/transfo
    ALTER GIT REPOSITORY DS5111_GIT_STAGE FETCH;
 
    -- Execute pipeline directly from Git
-   EXECUTE IMMEDIATE FROM @DS5111_GIT_STAGE/branches/main/scripts/orchestrate_pipeline.sql;
+   EXECUTE IMMEDIATE FROM @DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake/transform/orchestrate_pipeline.sql;
 
    -- Verify outputs
    SELECT * FROM DIM_VIDEOS LIMIT 10;
