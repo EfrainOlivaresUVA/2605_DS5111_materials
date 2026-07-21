@@ -166,7 +166,7 @@ SELECT
     JSON_PAYLOAD:tech_terms AS TECH_TERMS_ARRAY,
     JSON_PAYLOAD:book_names AS BOOK_NAMES_ARRAY,
     INSERTED_AT
-FROM RAW_TRANSCRIPTS;
+FROM <UVAID>.RAW_TRANSCRIPTS;
 ```
 
 ### File 2: `transform/02_dim_videos.sql`
