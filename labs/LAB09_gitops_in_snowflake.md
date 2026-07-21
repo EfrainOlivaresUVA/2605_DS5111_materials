@@ -255,8 +255,8 @@ In your local terminal:
 git checkout -b feature/add-char-count
 ```
 
-### Step 4.2: Modify `scripts/02_dim_videos.sql`
-Update `scripts/02_dim_videos.sql` to calculate a new column `CHAR_COUNT`:
+### Step 4.2: Modify `transform/02_dim_videos.sql`
+Update `transform/02_dim_videos.sql` to calculate a new column `CHAR_COUNT`:
 
 ```sql
 -- Step 2: Dimension Table (Updated with CHAR_COUNT)
@@ -274,7 +274,7 @@ FROM STG_YOUTUBE_TRANSCRIPTS;
 
 Commit and push your feature branch:
 ```bash
-git add scripts/02_dim_videos.sql
+git add transform/02_dim_videos.sql
 git commit -m "feat: add char_count metric to dim_videos"
 git push origin feature/add-char-count
 ```
