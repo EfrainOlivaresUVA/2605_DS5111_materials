@@ -298,47 +298,38 @@ EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/"feature/add-char-coun
 SELECT VIDEO_ID, WORD_COUNT, CHAR_COUNT FROM DIM_VIDEOS;
 ```
 
-### Step 4.4: Promote to Production
-Once verified in `DEV`:
-1. Merge `feature/add-char-count` into `main` via GitHub Pull Request or CLI:
-   ```bash
-   git checkout main
-   git merge feature/add-char-count
-   git push origin main
-   ```
-2. In Snowflake, switch context back to `PUBLIC` (or your `PROD` schema), fetch, and re-run `orchestrate_pipeline.sql`:
-   ```sql
-   USE SCHEMA PUBLIC;
-   ALTER GIT REPOSITORY DS5111_GIT_STAGE FETCH;
-   EXECUTE IMMEDIATE FROM @DS5111_GIT_STAGE/branches/main/scripts/orchestrate_pipeline.sql;
-   
-   -- Confirm updated schema in PROD
-   SELECT VIDEO_ID, WORD_COUNT, CHAR_COUNT FROM DIM_VIDEOS;
-   ```
+### Step 4.4: Merge Your Feature Branch
 
----
+Now that you've verified your transformation script works in your isolated `DEV_<computing_id>` schema:
 
-## Submission Deliverables
+1. Open a **Pull Request** on GitHub.
+2. Set the **Base Branch** to `LAB09_gitops_snowflake` (or your working lab branch) and the **Compare Branch** to `feature/add-char-count` (or `feature-add-char-count`).
+3. Review your changes and merge the Pull Request.
 
-1. **GitHub Repository URL:** Link to your accessible `ds5111-lab9-gitops` repository.
-2. **Snowflake Execution Screenshot / Query Log:** A screenshot showing successful execution of `EXECUTE IMMEDIATE FROM` and query results from `DIM_VIDEOS` showing `CHAR_COUNT`.
-3. **Verification Query Output:** Submit the text output of running:
-   ```sql
-   SELECT 
-       (SELECT COUNT(*) FROM DIM_VIDEOS) AS TOTAL_VIDEOS,
-       (SELECT COUNT(*) FROM FCT_TECH_TERMS) AS TOTAL_TECH_TERMS,
-       (SELECT COUNT(*) FROM FCT_BOOK_MENTIONS) AS TOTAL_BOOK_MENTIONS;
-   ```
+> **⚠️ Important Check:** Make sure you are merging into your active lab branch (`LAB09_gitops_snowflake`), NOT `main`!
+
+### Step 4.5 Verify your char count code back in your LAB06 branch by running this in Snowflake
+```sql
+-- 1. Switch back to primary/production context
+USE SCHEMA <UVAID>;
+
+-- 2. Fetch the newly merged changes from GitHub
+ALTER GIT REPOSITORY <UVAID>.DS5111_GIT_STAGE FETCH;
+
+-- 3. Execute the full pipeline against their primary schema
+EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake/transform/orchestrate_pipeline.sql;
+```
+
 
 ---
 
 ## Grading Rubric (10 Points Total)
 
-Submissions will be evaluated based on the following criteria:
+Submit your LAB06 branch pull request to main.
 
 | Category | Criteria | Points |
 | :--- | :--- | :---: |
-| **1. Repository & Git Stage Setup** | • Public/accessible GitHub repository created with correct `scripts/` directory structure.<br>• Snowflake `SECRET` and `GIT REPOSITORY` stage successfully configured and fetched without authorization errors. | **2 pts** |
+| **1. Repository & Git Stage Setup** | • Public/accessible GitHub repository created with correct `transform/` directory structure.<br>• Snowflake `SECRET` and `GIT REPOSITORY` stage successfully configured and fetched without authorization errors. | **2 pts** |
 | **2. Transformation Scripts & Logic** | • `01_stg_youtube_transcripts.sql`: Correct extraction and casting from `JSON_PAYLOAD` `VARIANT`.<br>• `02_dim_videos.sql`: Accurate text metric logic (`WORD_COUNT`, array sizes).<br>• `03_fct_entities.sql`: Proper implementation of `LATERAL FLATTEN` to unnest arrays into `FCT_TECH_TERMS` and `FCT_BOOK_MENTIONS`. | **3 pts** |
 | **3. GitOps Pipeline Orchestration** | • `orchestrate_pipeline.sql` created and successfully executed using `EXECUTE IMMEDIATE FROM` against the `@DS5111_GIT_STAGE` stage. | **2 pts** |
 | **4. Branching & Environment Isolation** | • Demonstrated workflow on `feature/add-char-count` branch targeting `DEV_<computing_id>` schema.<br>• Successful PR/merge into `main` and production execution in `PUBLIC` schema showing `CHAR_COUNT`. | **2 pts** |
