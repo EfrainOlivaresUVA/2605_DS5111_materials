@@ -154,7 +154,7 @@ git checkout -b LAB09_gitops_snowflake
 
 Locally on your machine, create the four SQL scripts inside the `scripts/` folder.
 
-### File 1: `scripts/01_stg_youtube_transcripts.sql`
+### File 1: `transform/01_stg_youtube_transcripts.sql`
 Extracts raw attributes from `JSON_PAYLOAD` into explicit relational types:
 
 ```sql
@@ -169,7 +169,7 @@ SELECT
 FROM RAW_TRANSCRIPTS;
 ```
 
-### File 2: `scripts/02_dim_videos.sql`
+### File 2: `transform/02_dim_videos.sql`
 Creates a video metadata dimension table with calculated text metrics:
 
 ```sql
@@ -185,7 +185,7 @@ SELECT
 FROM STG_YOUTUBE_TRANSCRIPTS;
 ```
 
-### File 3: `scripts/03_fct_entities.sql`
+### File 3: `transform/03_fct_entities.sql`
 Unnests array structures using `LATERAL FLATTEN` into relational fact tables:
 
 ```sql
@@ -208,7 +208,7 @@ FROM STG_YOUTUBE_TRANSCRIPTS,
 LATERAL FLATTEN(input => BOOK_NAMES_ARRAY) f;
 ```
 
-### File 4: `scripts/orchestrate_pipeline.sql`
+### File 4: `transform/orchestrate_pipeline.sql`
 Master script that chains execution directly from the Git stage:
 
 ```sql
