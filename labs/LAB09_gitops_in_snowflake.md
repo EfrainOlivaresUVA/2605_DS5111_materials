@@ -66,15 +66,18 @@ ds5111-pipeline/
 
 ### Step 1.2: Prepare Your Repository & Authentication Strategy
 
-For this lab, you will use your existing `ds5111-pipeline` repository from Lab 8.
-
 * **Path A (Default / Recommended): Public Repository**
   If your GitHub repository is **Public**, no Personal Access Token (PAT) or Snowflake secret configuration is required. Snowflake can pull public repositories directly using the account's built-in `github_public_integration`.
 
 * **Path B (Optional / Advanced): Private Repository**
-  If your repository is **Private**, you must generate a GitHub Personal Access Token (PAT) so Snowflake can authenticate:
-  1. In GitHub, navigate to **Settings** $\rightarrow$ **Developer Settings** $\rightarrow$ **Personal Access Tokens** $\rightarrow$ **Tokens (classic)**.
-  2. Click **Generate new token (classic)**, name it `Snowflake Git Token`, select the `repo` scope, and copy the generated token string.
+  If your repository is **Private**, generate a GitHub Personal Access Token (PAT) so Snowflake can authenticate:
+  1. Go directly to [github.com/settings/tokens](https://github.com/settings/tokens) **OR**:
+     * Click your **Profile Picture** (top right corner) $\rightarrow$ **Settings**.
+     * Scroll to the **very bottom** of the left-hand navigation sidebar.
+     * Click **Developer settings** $\rightarrow$ **Personal access tokens** $\rightarrow$ **Tokens (classic)**.
+  2. Click **Generate new token (classic)**.
+  3. Name it `Snowflake Git Token`, select the `repo` scope check box, and generate the token.
+  4. **Copy the generated token string immediately** (GitHub only shows it once).
 
 ---
 
@@ -82,7 +85,7 @@ For this lab, you will use your existing `ds5111-pipeline` repository from Lab 8
 
 Open a SQL Worksheet in Snowflake and execute the setup queries corresponding to your repository visibility choice below. Replace `<your-github-username>` with your actual GitHub username.
 
-#### Option A: Default Setup (Public Repositories)
+#### Path A: Default Setup (Public Repositories)
 
 ```sql
 -- Set active database context
@@ -95,7 +98,7 @@ CREATE OR REPLACE GIT REPOSITORY DS5111_GIT_STAGE
   API_INTEGRATION = GITHUB_PUBLIC_INTEGRATION;
 ```
 
-#### Option B: Advanced Setup (Private Repositories with Secret)
+#### Path B: Advanced Setup (Private Repositories with Secret)
 
 ```sql
 -- Set active database context
@@ -133,6 +136,21 @@ LIST @DS5111_GIT_STAGE/branches/main;
 ---
 
 ## Part 2: Building the Transformation Pipeline
+
+### Step 2.1: Create Your Lab Feature Branch (Local Git)
+
+Before authoring any SQL transformation files, create and switch to a dedicated working branch in your local terminal. Do **not** commit directly to `main`.
+
+```bash
+# Ensure you are on main and up to date
+git checkout main
+git pull origin main
+
+# Create and switch to your feature branch for Lab 9
+git checkout -b LAB09_gitops_snowflake
+```
+
+> 💡 **GitOps Rule:** All development and initial testing happen inside `LAB09_gitops_snowflake` running against your isolated personal schema (`DEV_<computing_id>`). You will only merge to `main` and execute against `PUBLIC` in Part 4 after everything passes verification.
 
 Locally on your machine, create the four SQL scripts inside the `scripts/` folder.
 
