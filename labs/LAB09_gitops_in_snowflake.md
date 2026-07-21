@@ -48,9 +48,9 @@ You will build a 3-tier modular transformation pipeline (`Staging` $\rightarrow$
 Your GitHub repository (`ds5111-lab9-gitops`) must adhere to the following layout:
 
 ```text
-ds5111-lab9-gitops/
-├── README.md
-└── scripts/
+ds5111-pipeline/
+├── bin/                 <-- Ingestion scripts (Previous labs)
+└── transform/           <-- Transformation pipeline (Lab 9)
     ├── 01_stg_youtube_transcripts.sql
     ├── 02_dim_videos.sql
     ├── 03_fct_entities.sql
