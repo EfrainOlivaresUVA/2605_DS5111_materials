@@ -11,13 +11,14 @@ By the end of this lab, you will be able to:
 2. Link external Git repositories to Snowflake as native `GIT REPOSITORY` stages.
 3. Parse semi-structured JSON payloads stored in Snowflake `VARIANT` columns using `LATERAL FLATTEN`.
 4. Execute version-controlled SQL transformation scripts from Git using `EXECUTE IMMEDIATE FROM`.
-5. Implement Git-based environment isolation (`dev` vs. `prod`) across Snowflake schemas.
+5. Implement Git-based environment isolation (`dev` vs. base schema) across Snowflake schemas.
 
 ---
 
 ## Prerequisites
 
 * Active access to the course Snowflake account (`DS5111_DB` database).
+* Access to your personal schema (`<UVAID>`).
 * A GitHub account.
 * Local Git installation and your text editor of choice (e.g., VS Code, Vim).
 
@@ -25,7 +26,7 @@ By the end of this lab, you will be able to:
 
 ## Architecture & Data Context
 
-In Lab 8, you containerized an ingestion pipeline streaming raw YouTube transcript payloads into Snowflake. These records currently reside in `RAW_TRANSCRIPTS` inside `DS5111_DB`.
+In Lab 8, you containerized an ingestion pipeline streaming raw YouTube transcript payloads into Snowflake. These records reside in `RAW_TRANSCRIPTS` inside your primary schema (`DS5111_DB.<UVAID>`).
 
 Each row in `RAW_TRANSCRIPTS` contains two primary columns:
 * `JSON_PAYLOAD` (`VARIANT`): A semi-structured JSON record formatted as:
@@ -39,18 +40,18 @@ Each row in `RAW_TRANSCRIPTS` contains two primary columns:
   ```
 * `INSERTED_AT` (`TIMESTAMP_NTZ`): Ingestion timestamp.
 
-You will build a 3-tier modular transformation pipeline (`Staging` $\rightarrow$ `Dimension` $\rightarrow$ `Fact`) versioned in Git and executed natively inside Snowflake.
+You will build a 3-tier modular transformation pipeline (Staging → Dimension → Fact) versioned in Git and executed natively inside Snowflake.
 
 ---
 
 ## Repository Structure
 
-Your GitHub repository (`ds5111-lab9-gitops`) must adhere to the following layout:
+Your GitHub repository (`ds5111-pipeline`) must adhere to the following layout:
 
 ```text
 ds5111-pipeline/
-├── bin/                 <-- Ingestion scripts (Previous labs)
-└── transform/           <-- Transformation pipeline (Lab 9)
+├── bin/            <-- Ingestion scripts (Previous labs)
+└── transform/      <-- Transformation pipeline (Lab 9)
     ├── 01_stg_youtube_transcripts.sql
     ├── 02_dim_videos.sql
     ├── 03_fct_entities.sql
@@ -61,8 +62,8 @@ ds5111-pipeline/
 
 ## Part 1: GitHub Setup & Secret Configuration
 
-### Step 1.1: Work in your current github repository
-1. You will do your work on your existing repository, access it in your preferred method jupyter/vscode/cli/aws-web.
+### Step 1.1: Work in Your Current GitHub Repository
+You will do your work inside your existing lab repository using your preferred development environment (VS Code, Vim, CLI, etc.).
 
 ### Step 1.2: Prepare Your Repository & Authentication Strategy
 
@@ -72,9 +73,9 @@ ds5111-pipeline/
 * **Path B (Optional / Advanced): Private Repository**
   If your repository is **Private**, generate a GitHub Personal Access Token (PAT) so Snowflake can authenticate:
   1. Go directly to [github.com/settings/tokens](https://github.com/settings/tokens) **OR**:
-     * Click your **Profile Picture** (top right corner) $\rightarrow$ **Settings**.
+     * Click your **Profile Picture** (top right corner) → **Settings**.
      * Scroll to the **very bottom** of the left-hand navigation sidebar.
-     * Click **Developer settings** $\rightarrow$ **Personal access tokens** $\rightarrow$ **Tokens (classic)**.
+     * Click **Developer settings** → **Personal access tokens** → **Tokens (classic)**.
   2. Click **Generate new token (classic)**.
   3. Name it `Snowflake Git Token`, select the `repo` scope check box, and generate the token.
   4. **Copy the generated token string immediately** (GitHub only shows it once).
@@ -83,14 +84,14 @@ ds5111-pipeline/
 
 ### Step 1.3: Create the Snowflake Git Repository Stage
 
-Open a SQL Worksheet in Snowflake and execute the setup queries corresponding to your repository visibility choice below. Replace `<your-github-username>` with your actual GitHub username.
+Open a SQL Worksheet in Snowflake and execute the setup queries corresponding to your repository visibility choice below. Replace `<UVAID>` with your computing ID (e.g., `TXT1SR`) and `<your-github-username>` with your GitHub username.
 
 #### Path A: Default Setup (Public Repositories)
 
 ```sql
--- Set active database context
+-- Set active context to your primary schema
 USE DATABASE DS5111_DB;
-USE SCHEMA PUBLIC;
+USE SCHEMA <UVAID>;
 
 -- Create native Git Stage referencing public integration
 CREATE OR REPLACE GIT REPOSITORY DS5111_GIT_STAGE
@@ -101,9 +102,9 @@ CREATE OR REPLACE GIT REPOSITORY DS5111_GIT_STAGE
 #### Path B: Advanced Setup (Private Repositories with Secret)
 
 ```sql
--- Set active database context
+-- Set active context to your primary schema
 USE DATABASE DS5111_DB;
-USE SCHEMA PUBLIC;
+USE SCHEMA <UVAID>;
 
 -- 1. Create a Snowflake Secret object to store your PAT securely
 CREATE OR REPLACE SECRET GITHUB_PAT_SECRET
@@ -120,7 +121,7 @@ CREATE OR REPLACE GIT REPOSITORY DS5111_GIT_STAGE
 
 #### Verify the Stage Connection (All Students)
 
-After creating your stage using Option A or B, run the following commands to fetch the repository metadata and verify your file tree:
+After creating your stage, run the following commands to fetch repository metadata and verify your file tree:
 
 ```sql
 -- Fetch the latest commits down from GitHub
@@ -150,12 +151,12 @@ git pull origin main
 git checkout -b LAB09_gitops_snowflake
 ```
 
-> 💡 **GitOps Rule:** All development and initial testing happen inside `LAB09_gitops_snowflake` running against your isolated personal schema (`DEV_<computing_id>`). You will only merge to `main` and execute against `PUBLIC` in Part 4 after everything passes verification.
+> 💡 **GitOps Rule:** All initial development and testing happen inside `LAB09_gitops_snowflake` running against your primary schema (`<UVAID>`). In Part 4, you will create a sub-feature branch to test isolated changes in a `DEV_<UVAID>` sandbox.
 
-Locally on your machine, create the four SQL scripts inside the `scripts/` folder.
+Locally on your machine, create the four SQL scripts inside the `transform/` folder.
 
 ### File 1: `transform/01_stg_youtube_transcripts.sql`
-Extracts raw attributes from `JSON_PAYLOAD` into explicit relational types:
+Extracts raw attributes from `JSON_PAYLOAD` into explicit relational types. Notice that we explicitly reference `<UVAID>.RAW_TRANSCRIPTS` so this staging script can safely run from any schema context:
 
 ```sql
 -- Step 1: Staging View (JSON Variant Parsing)
@@ -224,13 +225,16 @@ EXECUTE IMMEDIATE FROM @DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake/transfo
 
 1. Commit and push your local files to GitHub:
    ```bash
-   git add .
+   git add transform/
    git commit -m "feat: add lab9 transformation pipeline"
-   git push origin main
+   git push origin LAB09_gitops_snowflake
    ```
 
-2. In your Snowflake Worksheet, refresh the Git stage and run the orchestrator script:
+2. In your Snowflake Worksheet, ensure your context is set to `<UVAID>`, refresh the Git stage, and run the orchestrator script:
    ```sql
+   USE DATABASE DS5111_DB;
+   USE SCHEMA <UVAID>;
+
    -- Fetch latest commits from GitHub
    ALTER GIT REPOSITORY DS5111_GIT_STAGE FETCH;
 
@@ -247,12 +251,12 @@ EXECUTE IMMEDIATE FROM @DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake/transfo
 
 ## Part 4: Environment Isolation & Branch Testing
 
-To prevent testing changes directly in production, you will use Git branching and target schema isolation.
+To prevent testing changes directly in your base schema, you will use Git branching and target schema isolation.
 
 ### Step 4.1: Create a Feature Branch
-In your local terminal:
+In your local terminal, branch off of `LAB09_gitops_snowflake`:
 ```bash
-git checkout -b feature/add-char-count
+git checkout -b feature-add-char-count
 ```
 
 ### Step 4.2: Modify `transform/02_dim_videos.sql`
@@ -276,23 +280,23 @@ Commit and push your feature branch:
 ```bash
 git add transform/02_dim_videos.sql
 git commit -m "feat: add char_count metric to dim_videos"
-git push origin feature/add-char-count
+git push origin feature-add-char-count
 ```
 
 ### Step 4.3: Test Feature Branch in Personal Dev Schema
-In Snowflake, switch your context to your personal development schema (`DEV_<your_computing_id>`), fetch the latest repo state, and execute from the feature branch:
+In Snowflake, switch your context to an isolated development schema (`DEV_<UVAID>`), fetch the latest repo state, and execute from the feature branch:
 
 ```sql
 -- Set dev context
-CREATE SCHEMA IF NOT EXISTS DEV_<your_computing_id>;
-USE SCHEMA DEV_<your_computing_id>;
+CREATE SCHEMA IF NOT EXISTS DEV_<UVAID>;
+USE SCHEMA DEV_<UVAID>;
 
--- Fetch new branches
+-- Fetch new branch from Git stage (located in primary schema)
 ALTER GIT REPOSITORY <UVAID>.DS5111_GIT_STAGE FETCH;
 
--- Execute from feature branch into DEV schema   !!! NOTE THE " in the path name because of the / in the branch name
-EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/"feature/add-char-count"/transform/01_stg_youtube_transcripts.sql;
-EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/"feature/add-char-count"/transform/02_dim_videos.sql;
+-- Execute from feature branch into DEV schema
+EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/feature-add-char-count/transform/01_stg_youtube_transcripts.sql;
+EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/feature-add-char-count/transform/02_dim_videos.sql;
 
 -- Verify CHAR_COUNT exists in DEV schema
 SELECT VIDEO_ID, WORD_COUNT, CHAR_COUNT FROM DIM_VIDEOS;
@@ -300,45 +304,49 @@ SELECT VIDEO_ID, WORD_COUNT, CHAR_COUNT FROM DIM_VIDEOS;
 
 ### Step 4.4: Merge Your Feature Branch
 
-Now that you've verified your transformation script works in your isolated `DEV_<computing_id>` schema:
+Now that you've verified your transformation script works in your isolated `DEV_<UVAID>` schema:
 
 1. Open a **Pull Request** on GitHub.
-2. Set the **Base Branch** to `LAB09_gitops_snowflake` (or your working lab branch) and the **Compare Branch** to `feature/add-char-count` (or `feature-add-char-count`).
+2. Set the **Base Branch** to `LAB09_gitops_snowflake` and the **Compare Branch** to `feature-add-char-count`.
 3. Review your changes and merge the Pull Request.
 
-> **⚠️ Important Check:** Make sure you are merging into your active lab branch (`LAB09_gitops_snowflake`), NOT `main`!
+> ⚠️ **Important Check:** Make sure you are merging into your working lab branch (`LAB09_gitops_snowflake`), NOT `main`!
 
-### Step 4.5 Verify your char count code back in your LAB06 branch by running this in Snowflake
+### Step 4.5: Verify Deployment in Base Schema
+Switch back to your primary schema, pull the merged updates from GitHub, and re-run the pipeline orchestrator:
+
 ```sql
--- 1. Switch back to primary/production context
+-- 1. Switch back to primary context
 USE SCHEMA <UVAID>;
 
 -- 2. Fetch the newly merged changes from GitHub
-ALTER GIT REPOSITORY <UVAID>.DS5111_GIT_STAGE FETCH;
+ALTER GIT REPOSITORY DS5111_GIT_STAGE FETCH;
 
--- 3. Execute the full pipeline against their primary schema
-EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake/transform/orchestrate_pipeline.sql;
+-- 3. Execute the full pipeline against primary schema
+EXECUTE IMMEDIATE FROM @DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake/transform/orchestrate_pipeline.sql;
+
+-- 4. Confirm CHAR_COUNT is now live in your base schema
+SELECT VIDEO_ID, WORD_COUNT, CHAR_COUNT FROM DIM_VIDEOS LIMIT 10;
 ```
-
 
 ---
 
 ## Grading Rubric (10 Points Total)
 
-Submit your LAB06 branch pull request to main.
+Submit the Pull Request URL for your `LAB09_gitops_snowflake` branch via Canvas.
 
 | Category | Criteria | Points |
 | :--- | :--- | :---: |
-| **1. Repository & Git Stage Setup** | • Public/accessible GitHub repository created with correct `transform/` directory structure.<br>• Snowflake `SECRET` and `GIT REPOSITORY` stage successfully configured and fetched without authorization errors. | **2 pts** |
-| **2. Transformation Scripts & Logic** | • `01_stg_youtube_transcripts.sql`: Correct extraction and casting from `JSON_PAYLOAD` `VARIANT`.<br>• `02_dim_videos.sql`: Accurate text metric logic (`WORD_COUNT`, array sizes).<br>• `03_fct_entities.sql`: Proper implementation of `LATERAL FLATTEN` to unnest arrays into `FCT_TECH_TERMS` and `FCT_BOOK_MENTIONS`. | **3 pts** |
+| **1. Repository & Git Stage Setup** | • Public/accessible GitHub repository created with correct `transform/` directory structure.<br>• Snowflake `SECRET` and `GIT REPOSITORY` stage successfully configured inside `<UVAID>` schema. | **2 pts** |
+| **2. Transformation Scripts & Logic** | • `01_stg_youtube_transcripts.sql`: Correct extraction from `JSON_PAYLOAD` referencing `<UVAID>.RAW_TRANSCRIPTS`.<br>• `02_dim_videos.sql`: Accurate text metric logic (`WORD_COUNT`, array sizes).<br>• `03_fct_entities.sql`: Proper implementation of `LATERAL FLATTEN` to unnest arrays. | **3 pts** |
 | **3. GitOps Pipeline Orchestration** | • `orchestrate_pipeline.sql` created and successfully executed using `EXECUTE IMMEDIATE FROM` against the `@DS5111_GIT_STAGE` stage. | **2 pts** |
-| **4. Branching & Environment Isolation** | • Demonstrated workflow on `feature/add-char-count` branch targeting `DEV_<computing_id>` schema.<br>• Successful PR/merge into `main` and production execution in `PUBLIC` schema showing `CHAR_COUNT`. | **2 pts** |
-| **5. Deliverables & Verification** | • Submission includes valid GitHub URL, execution screenshot/query log, and complete text output from the verification query. | **1 pt** |
+| **4. Branching & Environment Isolation** | • Demonstrated workflow on `feature-add-char-count` branch targeting `DEV_<UVAID>` schema.<br>• Successful PR/merge into `LAB09_gitops_snowflake` and primary schema execution showing `CHAR_COUNT`. | **2 pts** |
+| **5. Deliverables & Verification** | • Submission includes valid GitHub PR URL, execution screenshot/query log, and complete text output from the verification query. | **1 pt** |
 | **Total** | | **10 pts** |
 
 ---
 
 ### Late Policy & Submission Format
 * **Submission Deadline:** [Insert Date/Time]
-* Submit your GitHub URL, execution screenshots, and verification output via Canvas.
+* Submit your GitHub Pull Request URL, execution screenshots, and verification output via Canvas.
 * Code that fails to execute due to uncommitted files or incorrect Git stage paths will receive a deduction under Category 3.
