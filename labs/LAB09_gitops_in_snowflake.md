@@ -226,7 +226,7 @@ EXECUTE IMMEDIATE FROM @DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake/transfo
    ```bash
    git add .
    git commit -m "feat: add lab9 transformation pipeline"
-   git push origin main
+   git push origin LAB09_gitops_snowflake
    ```
 
 2. In your Snowflake Worksheet, refresh the Git stage and run the orchestrator script:
