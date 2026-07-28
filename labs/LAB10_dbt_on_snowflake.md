@@ -10,7 +10,7 @@ Crucially, **you will execute this entirely within Snowflake**. Instead of confi
 
 **DO NOT EXECUTE THIS COMMAND. This is for your understanding of Snowflake RBAC and External Network Access.**
 
-By default, standard roles cannot create native dbt projects, nor can they reach out to the public internet to download `packages.yml` dependencies like `dbt-expectations`. To make this lab possible, your instructor executed the following commands as `ACCOUNTADMIN` behind the scenes:
+By default, standard roles cannot create native dbt projects, nor can they reach out to the public internet to download `packages.yml` dependencies like `dbt-expectations`. To make this lab possible, I executed the following commands as `ACCOUNTADMIN` behind the scenes:
 
 ```sql
 -- 1. Allow students to create dbt project objects in current and future DEV schemas
