@@ -308,7 +308,7 @@ Now that you've verified your transformation script works in your isolated `DEV_
 
 > **⚠️ Important Check:** Make sure you are merging into your active lab branch (`LAB09_gitops_snowflake`), NOT `main`!
 
-### Step 4.5 Verify your char count code back in your LAB06 branch by running this in Snowflake
+### Step 4.5 Verify your char count code back in your LAB09 branch by running this in Snowflake
 ```sql
 -- 1. Switch back to primary/production context
 USE SCHEMA <UVAID>;
@@ -325,7 +325,7 @@ EXECUTE IMMEDIATE FROM @<UVAID>.DS5111_GIT_STAGE/branches/LAB09_gitops_snowflake
 
 ## Grading Rubric (10 Points Total)
 
-Submit your LAB06 branch pull request to main.
+Submit your LAB09 branch pull request to main.
 
 | Category | Criteria | Points |
 | :--- | :--- | :---: |
