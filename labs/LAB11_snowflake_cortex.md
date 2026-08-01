@@ -1,4 +1,4 @@
-# Lab 12: In-Database Generative AI & Unstructured Analytics with Snowflake Cortex
+# Lab 11: In-Database Generative AI & Unstructured Analytics with Snowflake Cortex
 
 ## Executive Summary & Learning Objectives
 
