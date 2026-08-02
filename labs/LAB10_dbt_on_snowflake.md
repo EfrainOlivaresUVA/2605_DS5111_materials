@@ -1,4 +1,4 @@
-# Lab 11: Jinja Modeling, Data Quality, and `dbt-expectations`
+# Lab 10: Jinja Modeling, Data Quality, and `dbt-expectations`
 
 ## Overview
 
