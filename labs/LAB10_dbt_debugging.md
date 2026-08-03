@@ -55,3 +55,72 @@ You should be able to scroll through that and as you read it from top to bottom 
 what test(s) failed.
 
 At this point, take that feedback, and go back to the top of this loop and go through again.
+
+
+
+# If nothing is working, check your RAW_TRANSCRIPTS table, it should have book and tech term entries.
+If it doesn't then everything downstream will break because it depends on this info to build lower tables.
+
+Run this to create a fake RAW_TRANSCRIPTS table so you can proceed.  **NB:** make sure you replace all the <UVAID>, there are 5
+
+```sql
+USE DATABASE DS5111_DB;
+USE ROLE DS5111_STUDENT_ROLE;
+USE SCHEMA <UVAID>;
+
+-- 1. Drop existing table if present
+DROP TABLE IF EXISTS <UVAID>.RAW_TRANSCRIPTS;
+
+-- 2. Recreate table with VARIANT and TIMESTAMP_TZ data types
+CREATE TABLE <UVAID>.RAW_TRANSCRIPTS (
+    JSON_PAYLOAD VARIANT,
+    INSERTED_AT TIMESTAMP_TZ
+);
+
+-- 3. Populate baseline data using SELECT over VALUES
+INSERT INTO <UVAID>.RAW_TRANSCRIPTS (JSON_PAYLOAD, INSERTED_AT)
+SELECT 
+    PARSE_JSON(raw_json),
+    ts_string::TIMESTAMP_TZ
+FROM (
+    VALUES
+    (
+        $${
+  "book_names": [
+    "Clean Code"
+  ],
+  "cleaned_text": "In this lecture we explore advanced deep learning ablation models using PyTorch.",
+  "tech_terms": [
+    "PyTorch",
+    "Deep Learning"
+  ],
+  "video_id": "dbUIjFXIpis"
+}$$,
+        '2026-05-25 14:52:52.480 -0700'
+    ),
+    (
+        $${
+  "book_names": [
+    "The AWK Programming Language"
+  ],
+  "cleaned_text": "An introductory guide to setting up automated cron jobs and shell paths.",
+  "tech_terms": [
+    "Linux",
+    "Bash",
+    "Cron"
+  ],
+  "video_id": "dQw4w9WgXcQ"
+}$$,
+        '2026-05-25 14:52:53.507 -0700'
+    )
+) AS t(raw_json, ts_string);
+
+-- 4. Verify table output
+SELECT 
+    JSON_PAYLOAD:video_id::VARCHAR AS video_id,
+    JSON_PAYLOAD:cleaned_text::VARCHAR AS text,
+    INSERTED_AT
+FROM <UVAID>.RAW_TRANSCRIPTS;
+
+SELECT * FROM RAW_TRANSCRIPTS;
+```
