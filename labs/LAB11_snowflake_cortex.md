@@ -228,10 +228,7 @@ In traditional relational database engineering, functions are **deterministic**:
 Large Language Models, however, are **probabilistic statistical engines**. They construct responses by calculating token probability distributions. To observe this in practice, let's drop our topic mart, re-execute the exact same query, and inspect the raw output strings directly.
 
 ```sql
--- Step 2B.1: Drop the initial topic mart
-DROP TABLE IF EXISTS mart_cortex_topics;
-
--- Step 2B.2: Re-run classification, retaining the raw un-trimmed LLM output for analysis
+-- Step 2B.1: Re-run classification, retaining the raw un-trimmed LLM output for analysis
 CREATE OR REPLACE TABLE mart_cortex_topics_experiment AS
 SELECT 
     video_id,
@@ -243,7 +240,7 @@ SELECT
     ) AS raw_llm_response
 FROM cortex_youtube_demo;
 
--- Step 2B.3: Inspect raw response distribution
+-- Step 2B.2: Inspect raw response distribution
 SELECT 
     raw_llm_response, 
     COUNT(*) AS video_count,
